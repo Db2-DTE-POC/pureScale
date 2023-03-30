@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Set up member level HADR parameters for Primary
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr01" ]]; then
+   echo "This script must be run from hadr01" 1>&2
+   exit 1
+fi
+
+echo "Set up member level HADR DB CFG parameters for hadr01"
+
+db2 -v "update db cfg for psdb member 0 using HADR_LOCAL_HOST 192.168.142.11"
+db2 -v "update db cfg for psdb member 0 using HADR_LOCAL_SVC  57777"
+
+echo "Set up member level HADR DB CFG parameters for hadr02"
+
+db2 -v "update db cfg for psdb member 1 using HADR_LOCAL_HOST 192.168.142.12"
+db2 -v "update db cfg for psdb member 1 using HADR_LOCAL_SVC  57777"

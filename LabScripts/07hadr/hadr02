@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create / List all GPFS
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if ! [[ "`hostname -s`" == "hadr01" || "`hostname -s`" == "hadr03" ]] ; then
+   echo "This script must be run either from hadr01 or hadr03" 1>&2
+   exit 1
+fi
+
+function checkMount() {
+    mount | grep "on $1" > /dev/null
+}
+
+echo "======================================================"
+checkMount /db2data1
+if [ $? -eq 1 ] ; then
+   echo "Creating /db2data1 GPFS on /dev/sdd"
+   db2cluster -create -filesystem db2data1 -disk /dev/sdd -mount /db2data1 
+else
+   echo "GPFS /db2data1 already exists"
+fi
+
+echo "======================================================"
+echo "Changing owner of /db2data1 from root to db2psc"
+chown db2psc.db2iadm /db2data1
+
+echo "======================================================"
+checkMount /db2data2
+if [ $? -eq 1 ] ; then
+   echo "Creating db2data2 GPFS on /dev/sde"
+   db2cluster -create -filesystem db2data2 -disk /dev/sde -mount /db2data2
+else
+   echo "GPFS /db2data2 already exists"
+fi
+
+echo "======================================================"
+echo "Changing owner of db2data2 from root to db2psc"
+chown db2psc.db2iadm /db2data2
+
+echo "======================================================"
+checkMount /db2data3
+if [ $? -eq 1 ] ; then
+   echo "Creating db2data3 GPFS on /dev/sdf"
+   db2cluster -create -filesystem db2data3 -disk /dev/sdf -mount /db2data3
+else
+   echo "GPFS /db2data3 already exists"
+fi
+
+echo "======================================================"
+echo "Changing owner of db2data3 from root to db2psc"
+chown db2psc.db2iadm /db2data3
+
+echo "======================================================"
+checkMount /db2data4
+if [ $? -eq 1 ] ; then
+   echo "Creating db2data4 GPFS on /dev/sdg"
+   db2cluster -create -filesystem db2data4 -disk /dev/sdg -mount /db2data4
+else
+   echo  "GPFS /db2data4 already exists"
+fi
+
+echo "======================================================"
+echo "Changing owner of db2data4 from root to db2psc"
+chown db2psc.db2iadm /db2data4
+
+echo "======================================================"
+checkMount /db2log  
+if [ $? -eq 1 ] ; then
+   echo "Creating db2log GPFS on /dev/sdh"
+   db2cluster -create -filesystem db2log -disk /dev/sdh -mount /db2log
+else
+   echo  "GPFS /db2log already exists"
+fi
+   
+echo "======================================================"
+echo "Changing owner of db2log from root to db2psc"
+
+chown db2psc.db2iadm /db2log
+echo "======================================================"
+echo "List all GPFS"
+echo "======================================================"
+
+db2cluster -cfs -list -filesystem
+echo "======================================================"
+echo "List file system configuration"
+echo "======================================================"
+db2cluster -cfs -list -filesystem db2fs1 -configuration
+echo "======================================================"
+echo "Output of mmlsnsd -X"
+echo "======================================================"
+mmlsnsd -X
+echo "======================================================"
+echo "Output of mmlsnsd -M"
+mmlsnsd -M
+echo "======================================================"

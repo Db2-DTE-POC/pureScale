@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create / List all GPFS
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+echo ======================================================
+echo List all GPFS
+echo ======================================================
+
+db2cluster -cfs -list -filesystem
+echo ======================================================
+echo List file system configuration
+echo ======================================================
+db2cluster -cfs -list -filesystem db2fs1 -configuration
+echo ======================================================
+echo Output of mmlsnsd -X
+echo ======================================================
+mmlsnsd -X
+echo ======================================================
+echo Output of mmlsnsd -M
+mmlsnsd -M
+echo ======================================================

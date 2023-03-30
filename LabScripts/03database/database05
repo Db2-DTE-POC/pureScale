@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Change newlog path
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" == "node01" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+echo "Changing log path to /db2log"
+sudo mkdir -p /db2sd/db2log
+sudo chown db2psc.db2iadm /db2sd/db2log
+db2 connect to PSDB
+db2 update db cfg using NEWLOGPATH '/db2sd/db2log'
+db2 quiesce database immediate force connections
+db2 unquiesce database
+db2 terminate
+db2 deactivate db PSDB
+db2 activate database PSDB
+db2 terminate

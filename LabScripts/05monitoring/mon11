@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Determine CF bottleneck
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+PIDFILE=/tmp/mon02.pid
+pid=`cat $PIDFILE`
+
+mkdir logs > /dev/null 2>&1
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+LOGFILE=./logs/$0.log
+INTERVAL=5
+
+rm -f $LOGFILE
+touch $LOGFILE
+
+db2 -v connect to psdb user db2psc using password
+for i in {1..600}
+do
+   RV1=(`db2 -xtf mon12.sql`)
+   FV1=(`db2 -xtf mon19.sql`)
+   sleep $INTERVAL
+   RV2=(`db2 -xtf mon12.sql`)
+   FV2=(`db2 -xtf mon19.sql`)
+
+   printf "RECLAIMTIME_MILLI NUM_CF_WAITS CF_WAIT_MILLI AVG_CF_WT_MICRO\n"
+   printf "%-16s %-12s %-13s %-15s\n" "-----------------" "------------" "-------------" "---------------"
+   for ((index=0; index<${#RV1[@]}; index=index+4))
+   do
+     S1=${RV1[index]}
+     S2=${RV1[index+1]}
+     S3=${RV1[index+2]}
+     S4=${RV1[index+3]} 
+     R1=${RV2[index]}
+     R2=${RV2[index+1]}
+     R3=${RV2[index+2]}
+     R4=${FV2[index+3]} 
+     SR1=`bc -q <<< scale=2\;"$R1 - $S1"`
+     SR2=`bc -q <<< scale=2\;"$R2 - $S2"`
+     SR3=`bc -q <<< scale=2\;"$R3 - $S3"`
+     SR4=`bc -q <<< scale=2\;"$R4 - $S4"`
+     printf " %16d %12d %13d %15d\n" $SR1 $SR2 $SR3 $SR4 
+   done
+   printf "%-16s %-12s %-13s %-15s\n" "-----------------" "------------" "-------------" "---------------"
+   printf "\n"
+
+   printf "%-6s %15s %14s %13s\n" "MEMBER" "PERC_TOTAL_WAIT" "PERC_LOCK_WAIT" "PERC_CF_WAIT"
+   printf "%-6s %15s %14s %13s\n" "------" "---------------" "--------------" "------------"
+   for ((index=0; index<${#FV1[@]}; index=index+5))
+   do
+     MEM="${FV1[index]}"
+     W1=${FV1[index+1]}
+     W2=${FV1[index+2]}
+     W3=${FV1[index+3]}
+     W4=${FV1[index+4]}
+     T1=${FV2[index+1]}
+     T2=${FV2[index+2]}
+     T3=${FV2[index+3]}
+     T4=${FV2[index+4]}
+     if [ "$T1" != "$W1" ] ; then
+       RATE1=`bc -q <<< scale=2\;"100.0*($T2 - $W2)/($T1 - $W1)"`
+       RATE2=`bc -q <<< scale=2\;"100.0*($T3 - $W3)/($T1 - $W1)"`
+       RATE3=`bc -q <<< scale=2\;"100.0*($T4 - $W4)/($T1 - $W1)"`
+       printf "%-6s %15.2f %14.2f %13.2f\n" "$MEM" $RATE1 $RATE2 $RATE3
+     fi
+   done
+   printf "%-6s %15s %14s %13s\n" "------" "---------------" "--------------" "------------"
+   printf "\n"
+
+   if [ ! -e /proc/$pid -a /proc/$pid/exe ] ; then
+      echo Parent process $pid not found. Exiting ....
+      break;
+   fi
+done
+db2 connect reset

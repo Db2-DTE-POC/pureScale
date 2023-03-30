@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create db2psc instance on node02
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+IPLINE=`sed -n 2p /root/bin/backup/ip.txt`
+ARRAY=($IPLINE)
+HOSTNAM=${ARRAY[3]}
+NODE02=${HOSTNAM%%.*}
+DOMAIN=${HOSTNAM#*.}
+GATEWAY=${ARRAY[2]}
+NODENM=`hostname -s`
+
+if [[ "$NODENM" != "$NODE02" ]]; then
+   echo "This script must be run from $NODE02" 1>&2
+   exit 1
+fi
+
+DB2_SHARED_INSTANCE_DISK=`readlink -f /dev/udb`
+TIE_BREAKER_DISK=`readlink -f /dev/udc`
+INSTANCE_SHARED_MOUNT=/db2sd
+
+touch /tmp/$0.done
+echo "Creating db2psc instance on $NODE02"
+/opt/ibm/db2/instance/db2icrt -d -s dsf -instance_shared_dev $DB2_SHARED_INSTANCE_DISK -instance_shared_mount $INSTANCE_SHARED_MOUNT -p 50001 -tbdev $TIE_BREAKER_DISK -cf ${NODE02} -cfnet ${NODE02}.${DOMAIN} -m ${NODE02} -mnet ${NODE02}.${DOMAIN} -u db2psc db2psc
+rm -f /tmp/$0.done

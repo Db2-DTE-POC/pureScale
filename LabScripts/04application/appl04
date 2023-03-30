@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run SQL script to demonstrate WLB 
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+mkdir logs > /dev/null 2>&1
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+echo $$ > /tmp/appl04.pid
+
+LOGFILE=./logs/$0.log
+
+rm -f $LOGFILE
+
+# Function to run count(*) from ps_table
+doWork() 
+{
+   db2 -v connect to psdb user db2sdin1 using password
+   for i in {1..200}
+   do
+      db2 "select substr(host_name,1,6) HOST, $1 Thread_ID, \
+                  $i as Iteration, count(*) Count \
+           from sysibmadm.env_sys_info, ps_table \
+           group by host_name" | tee -a $LOGFILE
+   done
+   db2 connect reset
+}   
+
+echo Flush package cache
+db2 connect to psdb user db2sdin1 using password
+db2 flush package cache dynamic
+db2 terminate
+   
+# Spawn doWork here
+echo Running SQL row count against PS_TABLE using multiple threads
+sleep 4
+for x in {1..15}
+do
+   echo Spawning $x
+   doWork $x &
+done
+
+# Wait here for all to do the work
+wait
+
+sed -i "s/^HOST.*//g" $LOGFILE
+sed -i "s/^---.*//g" $LOGFILE
+sed -i "s/^.*record.*selected.*//g" $LOGFILE
+sed -i "/^$/d" $LOGFILE
+echo "======================================================="
+echo "# of transcations sent to each node"
+echo "======================================================="
+cat $LOGFILE | awk '{print $1}' | sort -n | uniq -c
+echo "======================================================="

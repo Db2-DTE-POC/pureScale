@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Start HADR on primary on preferred host hadr02
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr02" ]]; then
+   echo "This script must be run from hadr02" 1>&2
+   exit 1
+fi
+
+echo "Start HADR on primary preferred member hadr02"
+
+db2 -v start hadr on database psdb as primary

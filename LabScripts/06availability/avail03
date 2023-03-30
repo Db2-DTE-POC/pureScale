@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run SQL script to demonstrate WLB 
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+# Function to run count(*) from ps_table
+doWork() 
+{
+   db2 connect to psdb user db2psc using password
+   for i in {1..2000}
+   do
+      db2 "select SUBSTR(host_name,1,6) HOST, $1 Thread_ID, \
+                  $i as Iteration, count(*) Count \
+           from sysibmadm.env_sys_info, ps_table \
+           group by host_name"
+   done
+   db2 connect reset
+}   
+   
+# Spawn doWork here
+echo Running SQL row count against PS_TABLE using multiple threads
+sleep 4
+for x in {1..10}
+do
+   echo Spawning $x
+   doWork $x &
+done
+
+# Wait here for all to do the work
+wait

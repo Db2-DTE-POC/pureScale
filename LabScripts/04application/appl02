@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Set KEEPDYNAMIC=NO for db2clp for WLB
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+db2 connect to psdb user db2sdin1 using password
+db2 bind ~/sqllib/bnd/db2clpcs.bnd SQLERROR CONTINUE blocking all action replace KEEPDYNAMIC NO
+db2 bind ~/sqllib/bnd/db2clprr.bnd SQLERROR CONTINUE blocking all action replace KEEPDYNAMIC NO
+db2 bind ~/sqllib/bnd/db2clpur.bnd SQLERROR CONTINUE blocking all action replace KEEPDYNAMIC NO
+db2 bind ~/sqllib/bnd/db2clprs.bnd SQLERROR CONTINUE blocking all action replace KEEPDYNAMIC NO
+db2 bind ~/sqllib/bnd/db2clpnc.bnd SQLERROR CONTINUE blocking all action replace KEEPDYNAMIC NO
+db2 terminate

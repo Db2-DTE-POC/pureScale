@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run SQL script to know Group Buffer Pool Condition
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+PIDFILE=/tmp/mon02.pid
+pid=`cat $PIDFILE`
+
+mkdir logs > /dev/null 2>&1
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+LOGFILE=./logs/$0.log
+
+rm -f $LOGFILE
+touch $LOGFILE
+
+db2 -v connect to psdb user db2psc using password
+for i in {1..200}
+do
+   db2 -tf mon06.sql | tee -a $LOGFILE
+   if [ ! -e /proc/$pid -a /proc/$pid/exe ] ; then
+      echo Parent process $pid not found. Exiting ....
+      break;
+   fi
+   sleep 10
+done
+db2 connect reset

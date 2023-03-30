@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Kill CLP workload
+
+GPID=`ps x -o "%p %r %y %x %c" | grep -i avail03 | awk '{print $2}' | uniq`
+kill -TERM -$GPID

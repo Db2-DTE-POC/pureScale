@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#  Author Vikram Khatri vikram.khatri@us.ibm.com
+#  Purpose Run tail on the log file for viewing the progress
+#          of add member
+
+
+set +x
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+LOGFILE=/tmp/db2iupdt.log
+TOUCHFILE=/tmp/database06.done
+
+for i in 1 2 3 4 5 6 
+do
+   DB2PID=`ps -ef | grep /opt/ibm/db2/instance/db2iupdt | \
+                    grep -v grep | awk '{print $2}'`
+   if [ "$DB2PID" != "" ] ; then
+      break;
+   else
+      echo "Waiting for db2icrt or db2iupdt to start"
+      sleep 10
+   fi
+done
+   
+if [ "$DB2PID" != "" ] ; then
+   LOG=${LOGFILE}.$DB2PID
+   #echo Log file is $LOG
+   for i in 1 2 3 4 5 6 
+   do
+     if [ -f $LOG ] ; then
+         gnome-terminal -e "tail -n 500 -f $LOG"
+         pid=`ps -ef | grep "tail -n 500 -f $LOG" | grep -v grep | awk '{print $2}'`
+         #echo $pid is for tail command
+         while true
+         do 
+             if [ -f $TOUCHFILE ] ; then
+                #echo "Sleeping for 30 seconds since $TOUCHFILE still exists"
+                sleep 30
+             else
+                kill -9 $pid
+                break
+             fi
+         done
+         break;
+     else
+         echo Sleeping 10 sec for $LOG to arrive
+         sleep 10
+     fi
+   done
+else
+   echo Giving up...
+fi

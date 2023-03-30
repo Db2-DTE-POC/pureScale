@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Add CF member on node03
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+IPLINE=`sed -n 2p /root/bin/backup/ip.txt`
+ARRAY=($IPLINE)
+HOSTNAM=${ARRAY[3]}
+NODE02=${HOSTNAM%%.*}
+DOMAIN=${HOSTNAM#*.}
+GATEWAY=${ARRAY[2]}
+NODENM=`hostname -s`
+IPLINE=`sed -n 3p /root/bin/backup/ip.txt`
+ARRAY=($IPLINE)
+HOSTNAM=${ARRAY[3]}
+NODE03=${HOSTNAM%%.*}
+
+if [[ "$NODENM" != "$NODE02" ]]; then
+   echo "This script must be run from $NODE02" 1>&2
+   exit 1
+fi
+
+ssh $NODE03 "rm -fr /var/db2/global.reg"
+
+echo "Adding CF to $NODE03"
+touch /tmp/$0.done
+/opt/ibm/db2/instance/db2iupdt -d -add -cf ${NODE03} -cfnet ${NODE03}.${DOMAIN} db2psc
+rm -f /tmp/$0.done

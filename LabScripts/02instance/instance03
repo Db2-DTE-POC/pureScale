@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Drop GPFS and clean-up
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" == "node01" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+FILESYSTEM=`db2cluster -cfs -list -filesystem | awk 'NR > 2 {print $1}'`
+MOUNTPOINT=`db2cluster -cfs -list -filesystem | awk 'NR > 2{print $2}'`
+DOMAIN=`db2cluster -cfs -list -domain | awk '{print $3}'`
+db2cluster -cfs -stop -all
+db2cluster -cfs -set -tiebreaker -majority
+db2cluster -cfs -start -all
+for mp in $MOUNTPOINT
+do
+   for f in `ls $mp`
+   do
+      rm -fr $mp/$f
+   done
+done
+for fs in $FILESYSTEM
+do
+   db2cluster -cfs -delete -filesystem $fs
+done
+db2cluster -cfs -stop -all
+db2cluster -cfs -delete -domain $DOMAIN
+ssh node02 "rm -fr /var/db2/global.reg"
+ssh node03 "rm -fr /var/db2/global.reg"
+## Destoy DB2 instance directory
+ssh node02 "rm -fr /home/db2psc/sqllib"
+ssh node03 "rm -fr /home/db2psc/sqllib"
+## Initialize disk so that GPFS header is wiped out
+dd if=/dev/zero of=/dev/udb count=1 bs=8096
+### Destroy GPFS configuration
+ssh node02 "rm -fr /var/mmfs/gen"
+ssh node03 "rm -fr /var/mmfs/gen"

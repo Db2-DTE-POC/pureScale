@@ -1,0 +1,18 @@
+select decode(current node,0,'node02',1,'node03',2,'node04') node, first_name, last_name, job_code from ps_table where ps_table_id between ? and ? FETCH FIRST 5 ROWS ONLY; 
+select first_name, last_name, job_code, rand() idx from ps_table where job_code  = ? order by idx fetch first 5 rows only; 
+select first_name, last_name, job_code from ps_table where ps_table_id = ?; 
+select first_name, last_name, job_code, salary from ps_table where salary between ? and ? fetch first 25 rows only; 
+select first_name, count(*) from ps_table where first_name like ? group by first_name fetch first 20 rows only; 
+select a.first_name, a.last_name, a.job_code from ps_table a, ps_history b where a.first_name = b.firstname fetch first 20 rows only; 
+select first_name, last_name, job_code, rand() idx from ps_table where job_code  = ? order by idx fetch first 20 rows only; 
+select count(*) from ps_table where (first_name, last_name) in (select firstname, lastname from ps_history); 
+select first_name, job_code from ps_table where (first_name, last_name) in (select firstname, lastname from ps_history) fetch first 10 rows only; 
+select job_code, count(*)  from ps_table group by job_code union select jobcode, count(*) from ps_history group by jobcode;
+select first_name, last_name, job_code, rand() idx from ps_table where job_code  = ? order by idx fetch first 30 rows only; 
+update ps_table set job_code = 'WKR' where ps_table_id = ?;
+insert into ps_history (select first_name, last_name, job_code from ps_table where job_code = ? fetch first 5 rows only);
+insert into ps_history (select first_name, last_name, job_code from ps_table where ps_table_id = ?);
+SELECT dept, SUM(salary) AS salary, COUNT(*) AS rows, GROUPING(dept) AS fd FROM ps_table GROUP BY dept ORDER BY dept FETCH FIRST 5 ROWS ONLY;
+SELECT dept, SUM(salary), COUNT(*), GROUPING(dept) FROM ps_table GROUP BY dept UNION ALL SELECT CAST(NULL AS CHAR(3)) AS dept, SUM(salary) AS salary, COUNT(*) AS rows,CAST(1 AS INTEGER) AS fd FROM  ps_table ORDER BY dept fetch first 5 rows only;
+select dept, count(*) from ps_table group by dept fetch first 5 rows only;
+select job_code, count(*) from ps_table group by job_code;

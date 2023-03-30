@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create db2dsdriver.cfg for CLP scripts for WLB and ACR
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+
+fi
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+# run if user hits control-c
+control_c()
+{
+  echo -en "\n*** Exiting ***\n"
+  db2 terminate > /dev/null 2>&1
+  exit $?
+}
+ 
+# trap keyboard interrupt (control-c)
+trap control_c SIGINT
+
+db2 connect to psdb user db2psc using password
+while true
+do
+  db2 "select current_time TIME,'MEMBER' \"TYPE\", varchar(a.home_host,10) home_host, varchar(a.current_host,10) current_host,varchar(a.state,25) MEMBER_STATE from sysibmadm.db2_member a union all select current_time TIME,'CF' \"TYPE\",varchar(a.current_host,10) home_host, '-' \"current_host\", a.state CF_STATE from sysibmadm.db2_cf a"
+done

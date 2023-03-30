@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Start HADR on standby on preferred host hadr04
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr04" ]]; then
+   echo "This script must be run from hadr04" 1>&2
+   exit 1
+fi
+
+echo "Start HADR on standby preferred replay member hadr04"
+
+db2 -v deactivate db PSDB
+db2 -v start hadr on database psdb as standby

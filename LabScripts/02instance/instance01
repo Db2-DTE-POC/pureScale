@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Apply DB2 license
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+LIC=/opt/ibm/db2/adm/db2licm
+IPFILE=/root/bin/backup/ip.txt
+LICHOME=/home/db2psc/pot_purescale/01setup/lic
+IPLINE=`sed -n 2p $IPFILE`
+ARRAY=($IPLINE)
+HOSTNAM=${ARRAY[3]}
+SHORTNM=${HOSTNAM%%.*}
+NODENM=`hostname -s`
+
+if [ "$SHORTNM" != "$NODENM" ] ; then
+   echo "Script being run from $NODENM but it must run from $SHORTNM" 1>&2
+   exit 1
+fi
+
+########################################################
+i=0
+while read a b c d
+do
+  SHORTNM=${d%%.*}
+  servers[$i]=$SHORTNM
+  ((i++))
+done < $IPFILE
+########################################################
+echo "Apply db2 license"
+for ((i = 1; i < ${#servers[@]}; ++i));
+do
+  server=${servers[$i]};
+  echo ================================================
+  echo Applying DB2 License on $server
+  echo ================================================
+  ssh $server "$LIC -a $LICHOME/db2de.lic"
+  echo ================================================
+  echo Applying TSA License on $server
+  echo ================================================
+  ssh $server "samlicm -i $LICHOME/sam41.lic"
+done
+########################################################
+echo "Show license status"
+for ((i = 1; i < ${#servers[@]}; ++i));
+do
+  server=${servers[$i]};
+  echo ================================================
+  echo DB2 License status on $server
+  echo ================================================
+  ssh $server "$LIC -l"
+  echo ================================================
+  echo TSA License status on $server
+  echo ================================================
+  ssh $server "samlicm -s"
+done
+sync
+########################################################

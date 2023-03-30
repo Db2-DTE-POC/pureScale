@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Restore database
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr03" ]]; then
+   echo "This script must be run from hadr03" 1>&2
+   exit 1
+fi
+
+rm -fr /db2log/db2psc > /dev/null
+
+BKPDIR=$PWD/backup
+
+echo "Restoring PSDB database from $PWD/backup"
+db2 -v "restore db psdb from $PWD/backup  
+        on /db2data2,/db2data3,/db2data4 dbpath on /db2data1 
+        replace history file without prompting"

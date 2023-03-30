@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create a buffer pool and table space
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+db2 CONNECT TO PSDB
+echo "Set CF_CATCHUP_TRGT to 1 min"
+db2 UPDATE DB CFG USING CF_CATCHUP_TRGT 1
+echo "Create a buffer pool BP32 with a page size of 32K"
+db2 CREATE BUFFERPOOL BP32K PAGESIZE 32K
+echo "Create a table space TS32 using buffer pool BP32K"
+db2 CREATE TABLESPACE TS32 PAGESIZE 32K BUFFERPOOL BP32K 
+echo "Create a buffer pool BPTEMP16 with a page size of 16K"
+db2 CREATE BUFFERPOOL BPTEMP16 PAGESIZE 16K
+echo "Create table space TEMPSPACE16K"
+db2 "CREATE SYSTEM TEMPORARY TABLESPACE TEMPSPACE16K PAGESIZE 16 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL BPTEMP16"
+db2 TERMINATE
+db2 DEACTIVATE DATABASE PSDB
+db2 ACTIVATE DATABASE PSDB

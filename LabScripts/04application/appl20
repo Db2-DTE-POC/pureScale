@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Disable Member subset APPL
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+echo ===================================================
+echo "Disable member subset APPL"
+echo ===================================================
+db2 connect to PSDB user db2sdin1 using password
+db2 -v "call sysproc.wlm_alter_member_subset('APPL','<enabled>no</enabled>',NULL)"
+db2 terminate

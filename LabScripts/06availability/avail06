@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run Java Program and notice failver scenerios
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+PERFSTAT=${PERFSTAT:=FALSE}
+DEBUG=${DEBUG:=FALSE}
+THREADS=${THREADS:=5}
+ITERATIONS=${ITERATIONS:=300L}
+TPS=${TPS:=TRUE}
+JAVA=$HOME/sqllib/java/jdk64/jre/bin/java
+FLAGS="-Xmx400m -DOUTPUT_DIR=./logs2 -Ddb2.jcc.propertiesFile=./avail04.properties"
+JAR="-cp pstool.jar:$CLASSPATH"
+PRG=ibm.Driver
+COMMANDFILE=../04application/appl09.commands
+REPORTDELAY=1
+APPDELAY=0
+RETRY=false
+LOGFILE=ps.log
+
+$JAVA $FLAGS $JAR $PRG $PERFSTAT $DEBUG $TPS $REPORTDELAY $COMMANDFILE \
+      $THREADS $ITERATIONS $APPDELAY $RETRY $LOGFILE

@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run SQL script to check Member Sub-setting
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+db2 connect to psdb_1 user db2psc using password > /dev/null
+echo =============================================================
+echo "Member subset name activated for the current session"
+echo =============================================================
+db2 "select substr(m.subsetname,1,10) as SUBSETNAME 
+     from syscat.membersubsets as m, 
+     table(mon_get_connection(mon_get_application_handle(),-1)) as c 
+     where m.subsetid = c.member_subset_id"
+echo ===============================================================
+echo "Check the server list cached on member for member subset APPL"
+echo ===============================================================
+db2 "select member, substr(hostname,1,6) hostname, 
+     priority, member_subset_id, server_list_entry_member 
+     from table(mon_get_serverlist(-2,'APPL')) as list"
+db2 terminate

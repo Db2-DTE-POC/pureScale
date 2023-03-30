@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Set up cluster level HADR parameters for standby
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr03" ]]; then
+   echo "This script must be run from hadr03" 1>&2
+   exit 1
+fi
+
+echo "Set up HADR DB CFG parameters"
+
+db2 -v "update db cfg for psdb using HADR_TARGET_LIST 	
+             {192.168.142.11:57777|192.168.142.12:57778}"
+db2 -v "update db cfg for psdb using HADR_REMOTE_HOST 	
+             {192.168.142.11:57777|192.168.142.12:57778}"
+db2 -v "update db cfg for psdb using HADR_REMOTE_INST 	db2psc"
+db2 -v "update db cfg for psdb using HADR_SYNCMODE	async"

@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Add DB2 member on node04
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+ssh node04 "rm -fr /var/db2/global.reg"
+
+echo "Adding DB2 member to node04"
+touch /tmp/$0.done
+# Run database07 to launch tail on the db2iupdt log file
+./database07 &
+/opt/ibm/db2/instance/db2iupdt -d -add -m node04 -mnet node04.purescale.ibm.local db2psc
+rm -f /tmp/$0.done

@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Run SQL script to demonstrate WLB 
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+PIDFILE=/tmp/appl04.pid
+
+pid=`cat $PIDFILE`
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+db2 connect to psdb user db2sdin1 using password > /dev/null
+
+while true
+do
+   sleep 3
+   db2 "select member, sum(num_executions) NUM_EXECUTIONS, 
+        count(substr(stmt_text,1,200)) STMT_COUNT
+        from sysibmadm.top_dynamic_sql 
+        where stmt_text like '%group by host_name' 
+        group by member   
+       "
+   db2 "select member, count(*) NUM_CONNECTIONS
+        from sysibmadm.applications
+        where appl_name = 'db2bp'
+        group by member
+       "
+   if [ ! -e /proc/$pid -a /proc/$pid/exe ] ; then
+      echo Parent process $pid not found. Exiting ....
+      break;
+   fi
+done
+
+db2 terminate > /dev/null

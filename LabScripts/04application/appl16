@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose:  Create a member subset
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+echo "Creating a member subset definition to run the workload on member 1,2"
+db2 connect to PSDB
+db2 "call WLM_CREATE_MEMBER_SUBSET('APPL','<databaseAlias>PSDB_1</databaseAlias>','(1,2)')"

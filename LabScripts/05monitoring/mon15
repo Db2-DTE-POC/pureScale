@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose:  Determine CF 'command' rate 
+#           Find out the rate at which a CF command is executing
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+PIDFILE=/tmp/mon02.pid
+pid=`cat $PIDFILE`
+
+mkdir logs > /dev/null 2>&1
+export DB2DSDRIVER_CFG_PATH=~/sqllib/cfg
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+LOGFILE=/tmp/$0.log
+INTERVAL=3
+
+rm -f $LOGFILE
+touch $LOGFILE
+
+DIVIDER=---------------------------------------------------------------------------------------
+HEADER="\n %-30s %11s\n"
+FORMAT=" %-30s %11.2f\n"
+WIDTH=43 
+
+db2 -v connect to psdb user db2psc using password > /dev/null 2>&1
+printf "$HEADER" "CF_CMD" "RATE in ${INTERVAL}s"
+for i in {1..600}
+do
+   printf "%${WIDTH}.${WIDTH}s\n" $DIVIDER
+   FV1=(`db2 -xtf mon16.sql`) 
+   sleep $INTERVAL
+   FV2=(`db2 -xtf mon16.sql`)
+   FV3=(`db2 -xtf mon17.sql`)
+   FV4=(`db2 -xtf mon18.sql`)
+   for ((index=0; index<${#FV1[@]}; index=index+3)) 
+   do
+     CMD="${FV1[index]}"
+     Q1=${FV1[index+1]}
+     T1=${FV1[index+2]}
+     Q2=${FV2[index+1]}
+     T2=${FV2[index+2]}
+     if [ "$T2" != "$T1" ] ; then
+        RATE=`echo "($Q2 - $Q1)/($T2 - $T1)" | bc`
+        printf "$FORMAT" "$CMD" $RATE
+     fi
+   done
+   if [ ! -e /proc/$pid -a /proc/$pid/exe ] ; then
+      echo Parent process $pid not found. Exiting ....
+      break;
+   fi
+   sleep $INTERVAL
+done
+db2 connect reset

@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create db2psc instance on node02
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node02" ]]; then
+   echo "This script must be run from node02" 1>&2
+   exit 1
+fi
+
+DB2_SHARED_DIR=`/opt/ibm/db2/bin/db2cluster -cfs -list -filesystem | grep db2 | awk '{print $2}'`
+
+echo "DB2 shared directory is $DB2_SHARED_DIR"
+echo "Creating db2psc instance on node02"
+/opt/ibm/db2/instance/db2icrt -d -s dsf -instance_shared_dir $DB2_SHARED_DIR -p 50001 -tbdev 192.168.142.2 -cf node02 -cfnet node02.purescale.ibm.local -m node02 -mnet node02.purescale.ibm.local -u db2psc db2psc

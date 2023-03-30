@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Create db2dsdriver.cfg for CLP scripts for WLB and ACR
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner" 1>&2
+   exit 1
+fi
+
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+echo "Create ~/sqllib/cfg/db2dsdriver.cfg which has WLB and ACR"
+cat > ~/sqllib/cfg/db2dsdriver.cfg << "EOF"
+<configuration>
+  <dsncollection>
+    <dsn alias="PSDB" name="PSDB" host="192.168.142.102" port="50001"/>
+  </dsncollection>
+  <databases>
+     <database name="PSDB" host="192.168.142.102" port="50001">
+        <wlb>
+          <parameter name="enableWLB" value="true"/>
+        </wlb>
+	<acr>
+          <parameter name="enableACR" value="true"/>
+          <parameter name="enableSeamlessACR" value="true"/>
+          <parameter name="enableAlternateServerListFirstConnect" 
+                  value="true"/>
+	  <alternateserverlist>
+	      <server name="server1" hostname="192.168.142.103" 
+                      port="50001"/>
+	      <server name="server2" hostname="192.168.142.104" 
+                      port="50001"/>
+	      <server name="server3" hostname="192.168.142.102" 
+                      port="50001"/>
+          </alternateserverlist>
+       </acr>
+     </database>
+  </databases>
+</configuration>
+EOF

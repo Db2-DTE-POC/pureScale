@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Stop OPM and DB2 to conserve Resources
+
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "node01" ]]; then
+   echo "This script must be run from node01" 1>&2
+   exit 1
+fi
+
+echo "Stopping OPM Server ...."
+/opt/ibm/OPM/OPMstop.sh 
+sleep 10
+echo "Stopping DB2 Server ..."
+db2stop force
+sleep 10
+ipclean
+echo "Check OPM status ... "
+/opt/ibm/OPM/OPMstatus.sh
+

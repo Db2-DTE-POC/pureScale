@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# IBM DB2 pureScale Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Change archive/new logpath locations and take offline backup
+
+if [[ $EUID -eq 0 ]]; then
+   echo "This script must be run as instance owner and not as root" 1>&2
+   exit 1
+fi
+
+if [[ "`hostname -s`" != "hadr01" ]]; then
+   echo "This script must be run from hadr01" 1>&2
+   exit 1
+fi
+
+if [ ! -d backup ] ; then
+   mkdir backup
+else
+   rm -fr backup
+   mkdir backup
+fi
+
+db2 terminate > /dev/null
+db2 connect to psdb
+db2 quiesce database immediate force connections
+db2 unquiesce database
+db2 terminate > /dev/null
+db2 deactivate database psdb
+db2 -v update db cfg for psdb using LOGINDEXBUILD ON 
+db2 -v update db cfg for psdb using LOGARCHMETH1 'DISK:/db2log' 
+echo "Taking offline backup to $PWD/backup"
+db2 -v backup db PSDB to $PWD/backup 
