@@ -1,0 +1,16 @@
+[Unit]
+Description=Jupyter-Notebook Daemon
+
+[Service]
+Type=simple
+# ExecStart=/bin/bash -c "/home/k8s/.local/bin/jupyter-notebook --no-browser --notebook-dir=/home/k8s/notesbooks   --ip='0.0.0.0' --allow-root"
+ExecStart=/bin/bash -c "/home/k8s/.local/bin/jupyter-notebook --no-browser --ip='0.0.0.0' --allow-root"
+WorkingDirectory=/home/k8s/notebooks
+User=k8s
+Group=microk8s
+PIDFile=/run/jupyter-notebook.pid
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target
